@@ -56,7 +56,7 @@ bot.on('messageCreate', (msg) => {
   for (let i = 0; i < msg.embeds.length; i++) {
     const video = msg.embeds[i].video
 
-    if (video !== undefined) {
+    if (video !== undefined && video.url !== undefined) {
       // Special cases
       if (video.url.includes('clips.twitch.tv')) {
         console.log('Ignored twitch clip\n')
