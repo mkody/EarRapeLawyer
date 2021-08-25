@@ -10,5 +10,6 @@ Original code from [ObiArt/EarRapeLawyer](https://github.com/ObiArt/EarRapeLawye
 
 ## Config
 - botToken : Your bot token [(guide)](https://discordjs.guide/preparations/setting-up-a-bot-application.html)
-- maxFileSize : Max file size in bytes (only discord uploads, not embeds)
 - earRapeBar : Level in dB to consider as ear rape
+- maxFileSize : Max file size in bytes (only discord uploads, not embeds)
+- remoteMaxDuration : Max length in seconds to download and check a remote file

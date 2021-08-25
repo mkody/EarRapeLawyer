@@ -1,4 +1,5 @@
 const ffmpeg = require('fluent-ffmpeg')
+const youtubedl = require('youtube-dl-exec')
 const { Client, Intents } = require('discord.js')
 const config = require('./config.json')
 
@@ -37,7 +38,8 @@ function respond (msg) {
   msg.react('📢')
 }
 
-bot.on('messageCreate', (msg) => {
+function checkMsg (msg) {
+  // Check first attachment (if there's one)
   const [attachment] = msg.attachments.values()
 
   if (attachment !== undefined) {
@@ -53,14 +55,19 @@ bot.on('messageCreate', (msg) => {
     }
   }
 
+  // Check embeds
   for (let i = 0; i < msg.embeds.length; i++) {
+    const type = msg.embeds[i].type
+    const url = msg.embeds[i].url
     const video = msg.embeds[i].video
 
-    if (video !== undefined && video.url !== undefined) {
-      // Special cases
-      if (video.url.includes('clips.twitch.tv')) {
-        console.log('Ignored twitch clip\n')
-      } else if (checkedVideos[video.url] === undefined) {
+    // Only check video types (except some domains)
+    if (type !== 'video' &&
+        !url.includes('twitter.com')) return
+
+    // If there's a proxyURL, it's an embedable video
+    if (video && 'proxyURL' in video && video.proxyURL) {
+      if (checkedVideos[video.url] === undefined) {
         checkVideo(video.url)
           .then((val) => {
             if (val[0] === 0 && val[1] > config.earRapeBar) {
@@ -73,8 +80,54 @@ bot.on('messageCreate', (msg) => {
       } else if (checkedVideos[video.url]) {
         respond(msg)
       }
+    } else {
+      // For anything else, try youtube-dl
+      console.log('Using youtube-dl...')
+      youtubedl(url, {
+        dumpSingleJson: true,
+        noWarnings: true,
+        noCallHome: true,
+        noCheckCertificate: true,
+        youtubeSkipDashManifest: true,
+        x: true
+      })
+        .then(output => {
+          if ('is_live' in output && output.is_live === true) {
+            console.log('Video is live, ignoring.')
+            return
+          } else if (output.duration > config.remoteMaxDuration) {
+            console.log('Video is too long, ignoring.')
+            return
+          }
+
+          if (checkedVideos[output.url] === undefined) {
+            checkVideo(output.url)
+              .then((val) => {
+                if (val[0] === 0 && val[1] > config.earRapeBar) {
+                  respond(msg)
+                  checkedVideos[output.url] = true
+                } else {
+                  checkedVideos[output.url] = false
+                }
+              })
+          } else if (checkedVideos[output.url]) {
+            respond(msg)
+          }
+        })
+        .catch(err => {
+          if (err.stderr.includes("There's no video")) {
+            console.log('No video, ignoring.')
+            return
+          }
+          console.err(err)
+        })
     }
   }
+}
+
+bot.on('messageCreate', (msg) => checkMsg(msg))
+bot.on('messageUpdate', (old, msg) => {
+  if (old.embeds !== msg.embeds) checkMsg(msg)
 })
 
 bot.on('ready', () => {

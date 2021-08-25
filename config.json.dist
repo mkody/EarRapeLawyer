@@ -1,5 +1,6 @@
 {
     "botToken": "",
+    "earRapeBar": -7.0,
     "maxFileSize": 52428800,
-    "earRapeBar": -5.0
+    "remoteMaxDuration": 120
 }

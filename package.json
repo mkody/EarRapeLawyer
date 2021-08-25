@@ -1,12 +1,13 @@
 {
-  "name": "ear-rape",
-  "version": "1.0.1",
+  "name": "ear-rape-lawyer",
+  "version": "1.0.2",
   "description": "",
   "main": "index.js",
   "author": "MKody",
   "license": "Unlicense",
   "dependencies": {
     "discord.js": "^13.1.0",
-    "fluent-ffmpeg": "^2.1.2"
+    "fluent-ffmpeg": "^2.1.2",
+    "youtube-dl-exec": "^1.2.4"
   }
 }
