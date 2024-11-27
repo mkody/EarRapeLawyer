@@ -1,0 +1,6 @@
+services:
+  ear-rape-lawyer:
+    container_name: ear-rape-lawyer
+    build: .
+    volumes:
+      - ./config.json:/app/config.json:ro
