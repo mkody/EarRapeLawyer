@@ -1,9 +1,16 @@
 const ffmpeg = require('fluent-ffmpeg')
 const youtubedl = require('youtube-dl-exec')
-const { Client, Intents } = require('discord.js')
+const { Client, Events, GatewayIntentBits } = require('discord.js')
 const config = require('./config.json')
 
-const bot = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] })
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.MessageContent,
+  ]
+})
 const checkedVideos = {}
 
 function checkVideo (url) {
@@ -25,7 +32,7 @@ function checkVideo (url) {
         )
         resolve([
           parseFloat(stderr.match(/(?<=max_volume: )(.*)(?= dB)/gm)[0]),
-          parseFloat(stderr.match(/(?<=mean_volume: )(.*)(?= dB)/gm)[0])
+          parseFloat(stderr.match(/(?<=mean_volume: )(.*)(?= dB)/gm)[0]),
         ])
       })
       .output('no')
@@ -40,10 +47,10 @@ function respond (msg) {
 
 function checkMsg (msg) {
   // Check first attachment (if there's one)
-  const [attachment] = msg.attachments.values()
+  const attachment = msg.attachments.first()
 
   if (attachment !== undefined) {
-    if (attachment.url.match(/(.webm)$|(.mov)$|(.mp4)$|(.avi)$/gm) !== null) {
+    if (attachment.contentType.includes('video')) {
       if (attachment.size < config.maxFileSize) {
         checkVideo(attachment.url)
           .then((val) => {
@@ -57,13 +64,14 @@ function checkMsg (msg) {
 
   // Check embeds
   for (let i = 0; i < msg.embeds.length; i++) {
-    const type = msg.embeds[i].type
+    const type = msg.embeds[i].data.type
     const url = msg.embeds[i].url
     const video = msg.embeds[i].video
 
     // Only check video types (except some domains)
-    if (type !== 'video' &&
-        !url.includes('twitter.com')) return
+    if (type !== 'video' && !url.includes('twitter.com') && !url.includes('//x.com')) {
+      return
+    }
 
     // If there's a proxyURL, it's an embedable video
     if (video && 'proxyURL' in video && video.proxyURL) {
@@ -81,15 +89,15 @@ function checkMsg (msg) {
         respond(msg)
       }
     } else {
-      // For anything else, try youtube-dl
-      console.log('Using youtube-dl...')
+      // For anything else, try yt-dlp
+      console.log('Using yt-dlp...')
       youtubedl(url, {
         dumpSingleJson: true,
         noWarnings: true,
         noCallHome: true,
         noCheckCertificate: true,
         youtubeSkipDashManifest: true,
-        x: true
+        x: true,
       })
         .then(output => {
           if ('is_live' in output && output.is_live === true) {
@@ -119,19 +127,19 @@ function checkMsg (msg) {
             console.log('No video, ignoring.')
             return
           }
-          console.err(err)
+          console.log('YTdlp Error:', err)
         })
     }
   }
 }
 
-bot.on('messageCreate', (msg) => checkMsg(msg))
-bot.on('messageUpdate', (old, msg) => {
+client.on(Events.MessageCreate, (msg) => checkMsg(msg))
+client.on(Events.MessageUpdate, (old, msg) => {
   if (old.embeds !== msg.embeds) checkMsg(msg)
 })
 
-bot.on('ready', () => {
-  console.log(`Logged in as ${bot.user.tag}!`)
+client.once(Events.ClientReady, (readyClient) => {
+  console.log(`Logged in as ${readyClient.user.tag}!`)
 })
 
-bot.login(config.botToken)
+client.login(config.botToken)

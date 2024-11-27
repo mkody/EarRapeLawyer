@@ -5,7 +5,7 @@ Original code from [ObiArt/EarRapeLawyer](https://github.com/ObiArt/EarRapeLawye
 
 ## Install
 - Copy `config.json.dist` to `config.json` and edit it
-- `yarn install`
+- `pnpm install`
 - `node index.js`
 
 ## Config
